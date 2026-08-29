@@ -1,0 +1,23 @@
+# Visual Studio
+.vs/
+.vscode/
+*.sln
+*.slnx
+*.vcxproj*
+*.user
+*.filters
+
+# Build output
+out/
+Debug/
+Release/
+x64/
+*.obj
+*.exe
+*.pdb
+*.ilk
+
+# C/C++ temp files
+*.log
+*.tlog
+*.cache
