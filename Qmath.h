@@ -1,14 +1,47 @@
+/* 
+MIT License
+
+Copyright (c) 2026 Antonios Sotiriou
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 #ifndef QUATERNIONS_H
 #define QUATERNIONS_H 1
 
+#ifdef VECTORIZED_CODE
 #include <xmmintrin.h>
 
-/* Quaternion's internal format is W X Y Z. */
 typedef union vec4 {
     __m128 m;
     float c[4];
 } vec4;
 
+#else
+
+typedef union vec4 {
+    float c[4];
+} vec4;
+
+#endif // !VECTORIZED_CODE
+
+/* Quaternion's internal format is W X Y Z. */
 typedef vec4 quat;
 
 typedef union {
@@ -36,7 +69,7 @@ quat lerp(const quat q1, const quat q2, const float t);
 #include <math.h>
 
 #ifdef VECTORIZED_CODE // #######################################################################################
-/* Usefull Global variables fro used in this file, to increase some calculations performance. */
+/* Usefull Globals to increase some calculations performance. */
 // Useful for eulerToQuat;
 const static quat etqor = { 0.f, -0.f, 0.f, -0.f };
 // Useful for multiplyQuats;
