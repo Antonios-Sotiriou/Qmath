@@ -14,7 +14,7 @@ It provides quaternion and vector operations with optional SSE‑accelerated cod
 
 ## Integration
 
-Qmath follows the stb‑style single‑header pattern. Just download and include the Qmath.h header file.
+Qmath follows the stb‑style single‑header pattern. Just download and include the qmath.h header file.
 
 ### Implementation (in exactly one `.c` file)
 
