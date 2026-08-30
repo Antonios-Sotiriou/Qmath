@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef QUATERNIONS_H
-#define QUATERNIONS_H 1
+#ifndef QMATH_H
+#define QMATH_H 1
 
 #ifdef VECTORIZED_CODE
 #include <xmmintrin.h>
@@ -573,4 +573,4 @@ quat lerp(const quat q1, const quat q2, const float t) {
 
 #endif QMATH_IMPLEMENTATION
 
-#endif // QUATERNIONS_H
+#endif // QMATH_H

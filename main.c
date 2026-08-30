@@ -1,6 +1,6 @@
-﻿#define VECTORIZED_CODE
+﻿//#define VECTORIZED_CODE
 #define QMATH_IMPLEMENTATION
-#include "Qmath.h"
+#include "qmath.h"
 
 #include <stdio.h>
 #include <time.h>
