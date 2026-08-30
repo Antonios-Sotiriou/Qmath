@@ -26,7 +26,7 @@ SOFTWARE.
 #define QMATH_H 1
 
 #ifdef VECTORIZED_CODE
-#include <xmmintrin.h>
+#include <immintrin.h>
 
 typedef union vec4 {
     __m128 m;
@@ -55,14 +55,15 @@ void normalizeQuat(quat *q);
 quat conjugateQuat(const quat q);
 quat rotationQuat(const float angle, const float x, const float y, const float z);
 vec4 vec4RotateQuat(const quat q, const vec4 v);
-void setvec4RotateQuat(const quat q, vec4 *v);
+void setVec4RotateQuat(const quat q, vec4 *v);
 quat addQuats(const quat q1, const quat q2);
-quat eulertoQuat(const float roll, const float yaw, const float pitch);
+quat eulerToQuat(const float roll, const float yaw, const float pitch);
 quat multiplyQuats(const quat q1, const quat q2);
-mat4x4 MatfromQuat(const quat q, const float x, const float y, const float z);
+mat4x4 matFromQuat(const quat q, const float x, const float y, const float z);
 quat quatFromMat(mat4x4 m);
 quat slerp(const quat q1, const quat q2, const float t);
 quat lerp(const quat q1, const quat q2, const float t);
+void printQuat(quat q);
 
 #ifdef QMATH_IMPLEMENTATION
 
@@ -163,7 +164,7 @@ vec4 vec4RotateQuat(const quat q, const vec4 v) {
     };
 }
 /* Rotates vector v by the given quaternion. */
-void setvec4RotateQuat(const quat q, vec4 *v) {
+void setVec4RotateQuat(const quat q, vec4 *v) {
     quat r = {
         .m = _mm_shuffle_ps(v->m, v->m, _MM_SHUFFLE(2, 1, 0, 3))
     };
@@ -177,7 +178,7 @@ quat addQuats(const quat q1, const quat q2) {
     };
 }
 /* Creates a quaternion from the given euler angles. */
-quat eulertoQuat(const float roll, const float yaw, const float pitch) {
+quat eulerToQuat(const float roll, const float yaw, const float pitch) {
     const float half_roll = roll * 0.5f;
     const float half_yaw = yaw * 0.5f;
     const float half_pitch = pitch * 0.5f;
@@ -233,7 +234,7 @@ quat multiplyQuats(const quat q1, const quat q2) {
     };
 }
 /* Creates a matrix from a given quaternion with translation x, y, z. */
-mat4x4 MatfromQuat(const quat q, const float x, const float y, const float z) {
+mat4x4 matFromQuat(const quat q, const float x, const float y, const float z) {
     mat4x4 m;
     vec4 r1 = {
         .m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 1, 1, 0)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 3, 2, 0)))
@@ -412,7 +413,7 @@ vec4 vec4RotateQuat(const quat q, const vec4 v) {
     return (vec4) { r.c[1], r.c[2], r.c[3], v.c[3] };
 }
 /* Rotates vector v by the given quaternion. */
-void setvec4RotateQuat(const quat q, vec4* v) {
+void setVec4RotateQuat(const quat q, vec4* v) {
     quat r = setQuat(0.f, v->c[0], v->c[1], v->c[2]);
     r = multiplyQuats(multiplyQuats(conjugateQuat(q), r), q);
     v->c[0] = r.c[1];
@@ -429,7 +430,7 @@ quat addQuats(const quat q1, const quat q2) {
     };
 }
 /* Creates a quaternion from the given euler angles. */
-quat eulertoQuat(const float roll, const float yaw, const float pitch) { 
+quat eulerToQuat(const float roll, const float yaw, const float pitch) { 
     const float half_roll = roll * 0.5f;
     const float half_yaw = yaw * 0.5f;
     const float half_pitch = pitch * 0.5f;
@@ -462,7 +463,7 @@ quat multiplyQuats(const quat q1, const quat q2) {
     };
 }
 /* Creates a matrix from a given quaternion with translation x, y, z. */
-mat4x4 MatfromQuat(const quat q, const float x, const float y, const float z) {
+mat4x4 matFromQuat(const quat q, const float x, const float y, const float z) {
     mat4x4 m;
     m.m[0].c[0] = 2.0f * ((q.c[0] * q.c[0]) + (q.c[1] * q.c[1])) - 1.0f;
     m.m[0].c[1] = 2.0f * ((q.c[1] * q.c[2]) - (q.c[0] * q.c[3]));
@@ -570,6 +571,9 @@ quat lerp(const quat q1, const quat q2, const float t) {
     };
 }
 #endif // VECTORIZED_CODE #######################################################################################
+void printQuat(quat q) {
+    printf("{ %f %f %f %f }\n", q.c[0], q.c[1], q.c[2], q.c[3]);
+}
 
 #endif QMATH_IMPLEMENTATION
 
