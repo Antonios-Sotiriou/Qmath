@@ -1,4 +1,4 @@
-﻿//#define VECTORIZED_CODE
+﻿#define VECTORIZED_CODE
 #define QMATH_IMPLEMENTATION
 #include "qmath.h"
 

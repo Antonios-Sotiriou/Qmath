@@ -60,6 +60,7 @@ quat addQuats(const quat q1, const quat q2);
 quat eulerToQuat(const float roll, const float yaw, const float pitch);
 quat multiplyQuats(const quat q1, const quat q2);
 mat4x4 matFromQuat(const quat q, const float x, const float y, const float z);
+mat4x4 matFromQST(const quat q, const vec4 s, const vec4 t);
 quat quatFromMat(mat4x4 m);
 quat slerp(const quat q1, const quat q2, const float t);
 quat lerp(const quat q1, const quat q2, const float t);
@@ -95,22 +96,21 @@ const static quat slhalf = { 0.5f, 0.5f, 0.5f, 0.5f };
 
 /* Creates an initialized unit quaternion. */
 quat unitQuat(void) {
-    quat r = {
+    return (quat) {
         .m = _mm_set_ss(1.f)
     };
-    return r;
 }
 /* Sets a quat's parameters, creating a new quat. */
 quat setQuat(const float angle, const float x, const float y, const float z) {
-    quat r = {
+    return (quat) {
         .m = _mm_setr_ps(angle, x, y, z)
     };
-    return r;
 }
 /* Computes the magnitude aka length of a given quat. */
 float magnitudeQuat(const quat q) {
-    quat r = { 0 };
-    r.m = _mm_mul_ps(q.m, q.m);
+    quat r = {
+        .m = _mm_mul_ps(q.m, q.m)
+     };
     return _mm_cvtss_f32(
                _mm_sqrt_ps(
                    _mm_add_ps(
@@ -233,14 +233,14 @@ quat multiplyQuats(const quat q1, const quat q2) {
         .m = _mm_add_ps(_mm_add_ps(_mm_add_ps(w.m, _mm_xor_ps(mqor1.m, x.m)), _mm_xor_ps(mqor2.m, y.m)), _mm_xor_ps(mqor3.m, z.m))
     };
 }
-/* Creates a matrix from a given quaternion with translation x, y, z. */
-mat4x4 matFromQuat(const quat q, const float x, const float y, const float z) {
+/* Creates a matrix from a given quaternion with translation vector t. */
+mat4x4 matFromQuat(const quat q, const vec4 t) {
     mat4x4 m;
     vec4 r1 = {
-        .m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 1, 1, 0)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 3, 2, 0)))
+        _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 1, 1, 0)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 3, 2, 0)))
     };
     vec4 r2 = {
-        .m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 0, 0, 1)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 2, 3, 1)))
+        _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 0, 0, 1)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 2, 3, 1)))
     };
     m.m[0].m = _mm_sub_ps(_mm_mul_ps(_mm_add_ps(r1.m, _mm_xor_ps(mfqor1.m, r2.m)), twos.m), ones1.m);
 
@@ -252,19 +252,40 @@ mat4x4 matFromQuat(const quat q, const float x, const float y, const float z) {
     r2.m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 3, 0, 0)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 3, 1, 2)));
     m.m[2].m = _mm_sub_ps(_mm_mul_ps(_mm_add_ps(r1.m, _mm_xor_ps(mfqor3.m, r2.m)), twos.m), ones3.m);
 
-    vec4 xyz = {
-        _mm_setr_ps(x, y, z, 1.f)
-    };
     vec4 x1 = {
-        _mm_mul_ps(_mm_shuffle_ps(xyz.m, xyz.m, _MM_SHUFFLE(3, 0, 0, 0)), m.m[0].m)
+        .m = _mm_mul_ps(_mm_shuffle_ps(t.m, t.m, _MM_SHUFFLE(3, 0, 0, 0)), m.m[0].m)
     };
     vec4 y1 = {
-        _mm_mul_ps(_mm_shuffle_ps(xyz.m, xyz.m, _MM_SHUFFLE(3, 1, 1, 1)), m.m[1].m)
+        .m = _mm_mul_ps(_mm_shuffle_ps(t.m, t.m, _MM_SHUFFLE(3, 1, 1, 1)), m.m[1].m)
     };
     vec4 z1 = {
-        _mm_mul_ps(_mm_shuffle_ps(xyz.m, xyz.m, _MM_SHUFFLE(3, 2, 2, 2)), m.m[2].m)
+        .m = _mm_mul_ps(_mm_shuffle_ps(t.m, t.m, _MM_SHUFFLE(3, 2, 2, 2)), m.m[2].m)
     };
-    m.m[3].m = _mm_sub_ps(_mm_sub_ps(_mm_sub_ps(xyz.m, x1.m), y1.m), z1.m);
+    m.m[3].m = _mm_sub_ps(_mm_sub_ps(_mm_sub_ps(t.m, x1.m), y1.m), z1.m);
+
+    return m;
+}
+/* Creates a matrix from a given quaternion (q), an s scale vaector (s) and a translation vector (t). */
+mat4x4 matFromQST(const quat q, const vec4 s, const vec4 t) {
+    mat4x4 m;
+
+    vec4 r1 = {
+        .m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 1, 1, 0)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 3, 2, 0)))
+    };
+    vec4 r2 = {
+        .m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 0, 0, 1)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 2, 3, 1)))
+    };
+    m.m[0].m = _mm_mul_ps(_mm_sub_ps(_mm_mul_ps(_mm_add_ps(r1.m, _mm_xor_ps(mfqor1.m, r2.m)), twos.m), ones1.m), s.m);
+
+    r1.m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 2, 0, 1)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 3, 0, 2)));
+    r2.m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 0, 2, 0)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 1, 2, 3)));
+    m.m[1].m = _mm_mul_ps(_mm_sub_ps(_mm_mul_ps(_mm_add_ps(r1.m, _mm_xor_ps(mfqor2.m, r2.m)), twos.m), ones2.m), s.m);
+
+    r1.m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 0, 2, 1)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 0, 3, 3)));
+    r2.m = _mm_mul_ps(_mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 3, 0, 0)), _mm_shuffle_ps(q.m, q.m, _MM_SHUFFLE(0, 3, 1, 2)));
+    m.m[2].m = _mm_mul_ps(_mm_sub_ps(_mm_mul_ps(_mm_add_ps(r1.m, _mm_xor_ps(mfqor3.m, r2.m)), twos.m), ones3.m), s.m);
+
+    m.m[3] = t;
 
     return m;
 }
@@ -390,9 +411,9 @@ void normalizeQuat(quat* q) {
 quat conjugateQuat(const quat q) {
     return (quat) {
         q.c[0],
-            -q.c[1],
-            -q.c[2],
-            -q.c[3]
+        -q.c[1],
+        -q.c[2],
+        -q.c[3]
     };
 }
 /* Creates a rotation quaternion with angle W and rotation axis X Y Z: */
@@ -401,9 +422,9 @@ quat rotationQuat(const float angle, const float x, const float y, const float z
     const float sn = sinf(radius);
     return (quat) {
         cosf(radius),
-            x* sn,
-            y* sn,
-            z* sn
+        x* sn,
+        y* sn,
+        z* sn
     };
 }
 /* Rotates vector v by the given quaternion.Returns a new vector. */
@@ -462,31 +483,53 @@ quat multiplyQuats(const quat q1, const quat q2) {
         (q1.c[0] * q2.c[3]) + (q1.c[1] * q2.c[2]) - (q1.c[2] * q2.c[1]) + (q1.c[3] * q2.c[0])
     };
 }
-/* Creates a matrix from a given quaternion with translation x, y, z. */
-mat4x4 matFromQuat(const quat q, const float x, const float y, const float z) {
+/* Creates a matrix from a given quaternion with translation vector t. */
+mat4x4 matFromQuat(const quat q, const vec4 t) {
     mat4x4 m;
-    m.m[0].c[0] = 2.0f * ((q.c[0] * q.c[0]) + (q.c[1] * q.c[1])) - 1.0f;
-    m.m[0].c[1] = 2.0f * ((q.c[1] * q.c[2]) - (q.c[0] * q.c[3]));
-    m.m[0].c[2] = 2.0f * ((q.c[1] * q.c[3]) + (q.c[0] * q.c[2]));
+    m.m[0].c[0] = (2.0f * ((q.c[0] * q.c[0]) + (q.c[1] * q.c[1])) - 1.0f);
+    m.m[0].c[1] = (2.0f * ((q.c[1] * q.c[2]) - (q.c[0] * q.c[3])));
+    m.m[0].c[2] = (2.0f * ((q.c[1] * q.c[3]) + (q.c[0] * q.c[2])));
     m.m[0].c[3] = 0.0f;
 
-    m.m[1].c[0] = 2.0f * ((q.c[1] * q.c[2]) + (q.c[0] * q.c[3]));
-    m.m[1].c[1] = 2.0f * ((q.c[0] * q.c[0]) + (q.c[2] * q.c[2])) - 1.0f;
-    m.m[1].c[2] = 2.0f * ((q.c[2] * q.c[3]) - (q.c[0] * q.c[1]));
+    m.m[1].c[0] = (2.0f * ((q.c[1] * q.c[2]) + (q.c[0] * q.c[3])));
+    m.m[1].c[1] = (2.0f * ((q.c[0] * q.c[0]) + (q.c[2] * q.c[2])) - 1.0f);
+    m.m[1].c[2] = (2.0f * ((q.c[2] * q.c[3]) - (q.c[0] * q.c[1])));
     m.m[1].c[3] = 0.0f;
 
-    m.m[2].c[0] = 2.0f * ((q.c[1] * q.c[3]) - (q.c[0] * q.c[2]));
-    m.m[2].c[1] = 2.0f * ((q.c[2] * q.c[3]) + (q.c[0] * q.c[1]));
-    m.m[2].c[2] = 2.0f * ((q.c[0] * q.c[0]) + (q.c[3] * q.c[3])) - 1.0f;
+    m.m[2].c[0] = (2.0f * ((q.c[1] * q.c[3]) - (q.c[0] * q.c[2])));
+    m.m[2].c[1] = (2.0f * ((q.c[2] * q.c[3]) + (q.c[0] * q.c[1])));
+    m.m[2].c[2] = (2.0f * ((q.c[0] * q.c[0]) + (q.c[3] * q.c[3])) - 1.0f);
     m.m[2].c[3] = 0.0f;
 
-    if (m.m[2].c[0] != 0)
-        m.m[3].c[0] = x - x * m.m[0].c[0] - y * m.m[1].c[0] - z * m.m[2].c[0];
-    if (m.m[2].c[1] != 0)
-        m.m[3].c[1] = y - x * m.m[0].c[1] - y * m.m[1].c[1] - z * m.m[2].c[1];
-    if (m.m[2].c[2] != 0)
-        m.m[3].c[2] = z - x * m.m[0].c[2] - y * m.m[1].c[2] - z * m.m[2].c[2];
-    m.m[3].c[3] = 1.0;
+    m.m[3].c[0] = t.c[0] - t.c[0] * m.m[0].c[0] - t.c[1] * m.m[1].c[0] - t.c[2] * m.m[2].c[0];
+    m.m[3].c[1] = t.c[1] - t.c[0] * m.m[0].c[1] - t.c[1] * m.m[1].c[1] - t.c[2] * m.m[2].c[1];
+    m.m[3].c[2] = t.c[2] - t.c[0] * m.m[0].c[2] - t.c[1] * m.m[1].c[2] - t.c[2] * m.m[2].c[2];
+    m.m[3].c[3] = 1.0f;
+
+    return m;
+}
+/* Creates a model matrix from a given quaternion (q), s scale vector (s) and a translation vector (t). */
+mat4x4 matFromQST(const quat q, const vec4 s, const vec4 t) {
+    mat4x4 m;
+    m.m[0].c[0] = (2.0f * ((q.c[0] * q.c[0]) + (q.c[1] * q.c[1])) - 1.0f) * s.c[0];
+    m.m[0].c[1] = (2.0f * ((q.c[1] * q.c[2]) - (q.c[0] * q.c[3]))) * s.c[0];
+    m.m[0].c[2] = (2.0f * ((q.c[1] * q.c[3]) + (q.c[0] * q.c[2]))) * s.c[0];
+    m.m[0].c[3] = 0.0f;
+
+    m.m[1].c[0] = (2.0f * ((q.c[1] * q.c[2]) + (q.c[0] * q.c[3]))) * s.c[1];
+    m.m[1].c[1] = (2.0f * ((q.c[0] * q.c[0]) + (q.c[2] * q.c[2])) - 1.0f) * s.c[1];
+    m.m[1].c[2] = (2.0f * ((q.c[2] * q.c[3]) - (q.c[0] * q.c[1]))) * s.c[1];
+    m.m[1].c[3] = 0.0f;
+
+    m.m[2].c[0] = (2.0f * ((q.c[1] * q.c[3]) - (q.c[0] * q.c[2]))) * s.c[2];
+    m.m[2].c[1] = (2.0f * ((q.c[2] * q.c[3]) + (q.c[0] * q.c[1]))) * s.c[2];
+    m.m[2].c[2] = (2.0f * ((q.c[0] * q.c[0]) + (q.c[3] * q.c[3])) - 1.0f) * s.c[2];
+    m.m[2].c[3] = 0.0f;
+
+    m.m[3].c[0] = t.c[0];
+    m.m[3].c[1] = t.c[1];
+    m.m[3].c[2] = t.c[2];
+    m.m[3].c[3] = 1.0f;
 
     return m;
 }
